@@ -56,7 +56,7 @@ const Dashboard = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
           {/* Total Lines */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -122,29 +122,8 @@ const Dashboard = () => {
               <span>{totalProcessed} processed</span>
             </div>
           </motion.div>
-
-          {/* Processing Rate */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="bg-[#151525]/60 border border-white/10 rounded-[2rem] p-8 backdrop-blur-md"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center">
-                <TrendingUp size={24} className="text-green-500" />
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] font-black text-purple-400/60 uppercase tracking-widest">Success Rate</p>
-                <p className="text-4xl font-black text-white">{processingRate}%</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 text-green-400 text-xs font-bold">
-              <CheckCircle size={14} />
-              <span>Excellent performance</span>
-            </div>
-          </motion.div>
         </div>
+
 
         {/* Top Performing Lines */}
         <motion.div
