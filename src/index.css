@@ -1,0 +1,34 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#0a0a12] text-slate-300 font-sans selection:bg-purple-500 selection:text-white;
+  }
+}
+
+@layer components {
+
+  /* Retaining some existing utility classes just in case, but updating colors */
+  .btn-primary {
+    @apply bg-purple-600 text-white px-6 py-2.5 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-purple-500 transition-all duration-300 shadow-xl hover:shadow-2xl transform active:scale-95;
+  }
+
+  .input-field {
+    @apply w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-purple-500 text-white transition-all;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
