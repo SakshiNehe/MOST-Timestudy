@@ -41,7 +41,7 @@ const AddLineModal = ({ isOpen, onClose, onAdd }) => {
             <div>
               <label className="text-[10px] font-black text-purple-400 uppercase tracking-widest block mb-2">Stations</label>
               <input
-                type="number" required min="1" max="24"
+                type="number" required min="1" max="520"
                 className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-purple-500 text-white transition-all"
                 placeholder="8"
                 onChange={e => setFormData({ ...formData, stationCount: parseInt(e.target.value) })}

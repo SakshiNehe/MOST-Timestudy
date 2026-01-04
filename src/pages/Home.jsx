@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, Shield, LogOut, Cpu, Trash2, ChevronRight } from 'lucide-react';
+import { Search, Plus, Shield, LogOut, Cpu, Trash2, ChevronRight, BarChart3 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AddLineModal from '../components/AddLineModal';
 import { useApp } from '../context/AppContext';
@@ -28,6 +28,11 @@ const Home = () => {
           <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-indigo-700 rounded-xl flex items-center justify-center text-white font-black">T</div>
           <span className="font-black text-white tracking-tighter text-xl uppercase">TML <span className="text-purple-500 ml-1">Digital Lab</span></span>
         </div>
+        <div className="flex-1 text-center px-8">
+          <h1 className="text-lg md:text-xl font-black text-white uppercase tracking-tight">
+            MOST - Maynard Operation Sequence Technique Analysis
+          </h1>
+        </div>
         <div className="flex items-center gap-4">
           <div className="hidden sm:block text-right">
             <p className="text-[10px] font-black text-white uppercase">{user?.name || "Admin Engineer"}</p>
@@ -52,6 +57,13 @@ const Home = () => {
                 placeholder="Identify Unit..." value={search} onChange={e => setSearch(e.target.value)}
               />
             </div>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="flex items-center gap-2 px-8 py-4 bg-white/5 border border-white/10 text-purple-400 font-black rounded-2xl hover:bg-white/10 transition-all active:scale-95"
+            >
+              <BarChart3 size={20} />
+              <span className="uppercase tracking-widest text-xs">Dashboard</span>
+            </button>
             <button
               onClick={() => setIsModalOpen(true)}
               className="flex items-center gap-2 px-8 py-4 bg-purple-600 text-white font-black rounded-2xl shadow-[0_0_30px_rgba(147,51,234,0.3)] hover:bg-purple-500 transition-all active:scale-95"

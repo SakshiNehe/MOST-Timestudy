@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, LockKeyhole, Video, PlayCircle, Workflow, Download, Upload } from 'lucide-react';
@@ -10,8 +10,51 @@ const LineDetails = () => {
   const navigate = useNavigate();
   const { lines } = useApp();
   const [selectedStation, setSelectedStation] = useState(null);
+  const fileInputRef = useRef(null);
 
   const line = lines.find(l => l.id === parseInt(lineId));
+
+  // Handle file upload
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      console.log('File selected:', file.name);
+      // TODO: Implement video upload logic here
+      // This would typically upload to a server or process the file
+      alert(`Video selected: ${file.name}\nUpload functionality will be implemented here.`);
+    }
+  };
+
+  // Handle download of MOST analysis results
+  const handleDownload = () => {
+    if (!currentData?.analysis || currentData.analysis.length === 0) {
+      alert('No analysis data available to download');
+      return;
+    }
+
+    // Create CSV content
+    const headers = ['Sequence ID', 'Description', 'TMU'];
+    const rows = currentData.analysis.map(row => [row.id, row.d, row.t]);
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    // Create and trigger download
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `MOST_Analysis_Station_${selectedStation.number}_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
 
   // Helper to get data for specific station from line data
   const currentData = useMemo(() => {
@@ -86,6 +129,15 @@ const LineDetails = () => {
           >
             {/* LEFT SIDE: Video Feed & Upload */}
             <div className="bg-[#151525]/60 border border-white/10 rounded-[3rem] overflow-hidden backdrop-blur-md">
+              {/* Hidden file input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="video/*"
+                className="hidden"
+              />
+
               <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/5">
                 <h4 className="font-black text-white flex items-center gap-3 uppercase text-sm">
                   <Video size={18} className="text-purple-500" />
@@ -97,39 +149,59 @@ const LineDetails = () => {
               </div>
 
               <div className="p-8">
-                {/* Video Player */}
-                <div className="aspect-video bg-black rounded-[2rem] flex items-center justify-center mb-6 relative group border border-white/5 overflow-hidden">
-                  <div className="absolute top-4 left-4 z-20 px-3 py-1 bg-black/60 text-[10px] font-bold text-white rounded-lg border border-white/10">
-                    STATION_{selectedStation.number}_CAM_01
-                  </div>
-                  <PlayCircle className="text-purple-500 opacity-40 group-hover:opacity-100 group-hover:scale-110 transition-all cursor-pointer" size={60} />
-                </div>
-
-                {/* Upload Button */}
-                <button className="w-full mb-6 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black rounded-2xl flex items-center justify-center gap-3 hover:shadow-[0_0_30px_rgba(147,51,234,0.4)] transition-all active:scale-95">
-                  <Upload size={20} />
-                  <span className="uppercase tracking-widest text-xs">Upload New Video</span>
-                </button>
-
-                {/* Video List */}
-                <div className="space-y-3">
-                  <h5 className="text-[10px] font-black text-purple-400/60 uppercase tracking-widest mb-3">Uploaded Videos</h5>
-                  {currentData?.videos.length > 0 ? currentData.videos.map(v => (
-                    <div key={v.id} className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5 hover:bg-white/10 transition-all cursor-pointer">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                          <PlayCircle size={16} className="text-purple-400" />
-                        </div>
-                        <span className="text-xs font-bold text-white">{v.name}</span>
+                {/* Conditional rendering based on video availability */}
+                {currentData?.videos.length > 0 ? (
+                  <>
+                    {/* Video Player */}
+                    <div className="aspect-video bg-black rounded-[2rem] flex items-center justify-center mb-6 relative group border border-white/5 overflow-hidden">
+                      <div className="absolute top-4 left-4 z-20 px-3 py-1 bg-black/60 text-[10px] font-bold text-white rounded-lg border border-white/10">
+                        STATION_{selectedStation.number}_CAM_01
                       </div>
-                      <span className="text-[10px] text-purple-400 font-bold">{v.duration}</span>
+                      <PlayCircle className="text-purple-500 opacity-40 group-hover:opacity-100 group-hover:scale-110 transition-all cursor-pointer" size={60} />
                     </div>
-                  )) : (
-                    <div className="text-center text-xs text-white/40 py-8 bg-white/5 rounded-2xl border border-white/5">
-                      No recordings available
+
+                    {/* Upload Button */}
+                    <button onClick={handleUploadClick} className="w-full mb-6 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black rounded-2xl flex items-center justify-center gap-3 hover:shadow-[0_0_30px_rgba(147,51,234,0.4)] transition-all active:scale-95">
+                      <Upload size={20} />
+                      <span className="uppercase tracking-widest text-xs">Upload New Video</span>
+                    </button>
+
+                    {/* Video List */}
+                    <div className="space-y-3">
+                      <h5 className="text-[10px] font-black text-purple-400/60 uppercase tracking-widest mb-3">Uploaded Videos</h5>
+                      {currentData.videos.map(v => (
+                        <div key={v.id} className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5 hover:bg-white/10 transition-all cursor-pointer">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                              <PlayCircle size={16} className="text-purple-400" />
+                            </div>
+                            <span className="text-xs font-bold text-white">{v.name}</span>
+                          </div>
+                          <span className="text-[10px] text-purple-400 font-bold">{v.duration}</span>
+                        </div>
+                      ))}
                     </div>
-                  )}
-                </div>
+                  </>
+                ) : (
+                  /* No videos - Show waiting state */
+                  <div className="flex flex-col items-center justify-center py-16">
+                    <motion.div
+                      animate={{ y: [0, -10, 0] }}
+                      transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                      className="w-20 h-20 bg-purple-500/10 rounded-full flex items-center justify-center mb-6 border-2 border-purple-500/20"
+                    >
+                      <Video size={36} className="text-purple-500/40" />
+                    </motion.div>
+                    <h5 className="text-lg font-black text-white uppercase tracking-wider mb-2">Waiting to Upload Video</h5>
+                    <p className="text-xs text-purple-400/60 mb-8">No video has been uploaded for this station yet</p>
+
+                    {/* Upload Button */}
+                    <button onClick={handleUploadClick} className="py-4 px-8 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black rounded-2xl flex items-center justify-center gap-3 hover:shadow-[0_0_30px_rgba(147,51,234,0.4)] transition-all active:scale-95">
+                      <Upload size={20} />
+                      <span className="uppercase tracking-widest text-xs">Upload Video</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -140,51 +212,71 @@ const LineDetails = () => {
                   <Workflow size={18} className="text-purple-500" />
                   MOST Cycle Results
                 </h4>
-                <button className="p-2.5 bg-white/5 text-purple-400 rounded-xl hover:text-white transition-all">
+                <button onClick={handleDownload} className="p-2.5 bg-white/5 text-purple-400 rounded-xl hover:text-white transition-all">
                   <Download size={16} />
                 </button>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="bg-white/5 border-b border-white/5 text-[10px] text-purple-400/60 font-black uppercase tracking-widest">
-                      <th className="px-8 py-4">Sequence ID</th>
-                      <th className="px-8 py-4">Description</th>
-                      <th className="px-8 py-4 text-right">TMU</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {currentData?.analysis.length > 0 ? currentData.analysis.map((row, i) => (
-                      <tr key={i} className="hover:bg-white/5 transition-colors">
-                        <td className="px-8 py-5 font-mono text-xs text-purple-400 font-bold">{row.id}</td>
-                        <td className="px-8 py-5 text-[11px] text-white/60 font-bold">{row.d}</td>
-                        <td className="px-8 py-5 text-right font-black text-white">{row.t}</td>
-                      </tr>
-                    )) : (
-                      <tr>
-                        <td colSpan="3" className="text-center text-xs text-white/40 py-8">
-                          No analysis data available
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              {/* Conditional rendering based on video availability */}
+              {currentData?.videos.length > 0 ? (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="bg-white/5 border-b border-white/5 text-[10px] text-purple-400/60 font-black uppercase tracking-widest">
+                          <th className="px-8 py-4">Sequence ID</th>
+                          <th className="px-8 py-4">Description</th>
+                          <th className="px-8 py-4 text-right">TMU</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {currentData?.analysis.length > 0 ? currentData.analysis.map((row, i) => (
+                          <tr key={i} className="hover:bg-white/5 transition-colors">
+                            <td className="px-8 py-5 font-mono text-xs text-purple-400 font-bold">{row.id}</td>
+                            <td className="px-8 py-5 text-[11px] text-white/60 font-bold">{row.d}</td>
+                            <td className="px-8 py-5 text-right font-black text-white">{row.t}</td>
+                          </tr>
+                        )) : (
+                          <tr>
+                            <td colSpan="3" className="text-center text-xs text-white/40 py-8">
+                              No analysis data available
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
 
-              <div className="p-8 mt-auto border-t border-white/5 bg-black/20 flex justify-between items-center">
-                <div>
-                  <p className="text-[9px] font-black text-purple-400/40 uppercase tracking-widest">Station Cycle Total</p>
-                  <p className="text-3xl font-black text-white">
-                    {currentData?.analysis.reduce((acc, curr) => acc + curr.t, 0) || 0}
-                    <span className="text-xs text-purple-500 ml-1">TMU</span>
+                  <div className="p-8 mt-auto border-t border-white/5 bg-black/20 flex justify-between items-center">
+                    <div>
+                      <p className="text-[9px] font-black text-purple-400/40 uppercase tracking-widest">Station Cycle Total</p>
+                      <p className="text-3xl font-black text-white">
+                        {currentData?.analysis.reduce((acc, curr) => acc + curr.t, 0) || 0}
+                        <span className="text-xs text-purple-500 ml-1">TMU</span>
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[9px] font-black text-purple-400/40 uppercase tracking-widest">Performance</p>
+                      <p className="text-3xl font-black text-green-400">92%</p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* No videos - Show waiting state for results */
+                <div className="flex flex-col items-center justify-center py-24">
+                  <motion.div
+                    animate={{ rotate: [0, 360] }}
+                    transition={{ repeat: Infinity, duration: 8, ease: "linear" }}
+                    className="w-20 h-20 bg-purple-500/10 rounded-full flex items-center justify-center mb-6 border-2 border-dashed border-purple-500/20"
+                  >
+                    <Workflow size={36} className="text-purple-500/40" />
+                  </motion.div>
+                  <h5 className="text-lg font-black text-white uppercase tracking-wider mb-2">No Output Available</h5>
+                  <p className="text-xs text-purple-400/60 text-center max-w-xs">
+                    Upload a video to generate MOST analysis results for this station
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="text-[9px] font-black text-purple-400/40 uppercase tracking-widest">Performance</p>
-                  <p className="text-3xl font-black text-green-400">92%</p>
-                </div>
-              </div>
+              )}
             </div>
           </motion.div>
         )}

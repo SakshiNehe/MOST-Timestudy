@@ -3,6 +3,7 @@ import { AppProvider, useApp } from './context/AppContext';
 import Login from './pages/Login';
 import Home from './pages/Home';
 import LineDetails from './pages/LineDetails';
+import Dashboard from './pages/Dashboard';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -25,6 +26,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Home />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
           </ProtectedRoute>
         }
       />

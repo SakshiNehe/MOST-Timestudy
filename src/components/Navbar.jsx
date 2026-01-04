@@ -40,7 +40,7 @@ const Navbar = () => {
           transition={{ delay: 0.3, duration: 0.5 }}
         >
           <h1 className="text-xl md:text-2xl font-bold text-tata-darkblue">
-            MOST Analysis
+            MOST - Maynard Operation Sequence Technique Analysis
           </h1>
           <p className="text-sm text-industrial-600 mt-1">Time Study Analysis Platform</p>
         </motion.div>
