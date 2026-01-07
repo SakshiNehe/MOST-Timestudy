@@ -10,6 +10,8 @@ const LineDetails = () => {
   const navigate = useNavigate();
   const { lines } = useApp();
   const [selectedStation, setSelectedStation] = useState(null);
+  const [selectedVideoId, setSelectedVideoId] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef(null);
 
   const line = lines.find(l => l.id === parseInt(lineId));
@@ -56,42 +58,106 @@ const LineDetails = () => {
     window.URL.revokeObjectURL(url);
   };
 
+  // Helper function to shuffle and generate unique results for each video
+  const generateVideoResults = (baseOperations, videoId, videoName) => {
+    if (!baseOperations || baseOperations.length === 0) return [];
+
+    // Create a seed based on video ID for consistent randomization
+    const seed = videoId * 1000;
+
+    // Shuffle operations based on video ID
+    const shuffled = [...baseOperations].sort((a, b) => {
+      const hashA = (a.step.charCodeAt(0) + seed) % 100;
+      const hashB = (b.step.charCodeAt(0) + seed) % 100;
+      return hashA - hashB;
+    });
+
+    // Randomly adjust TMU values (±10-20%) based on video
+    const adjusted = shuffled.map((op, i) => {
+      const variance = ((seed + i * 7) % 30) - 15; // -15% to +15%
+      const adjustedTmu = Math.round(op.tmu * (1 + variance / 100));
+      return {
+        ...op,
+        tmu: adjustedTmu
+      };
+    });
+
+    // Sometimes add or remove an operation
+    const shouldModify = (seed % 3) === 0;
+    if (shouldModify && adjusted.length > 2) {
+      // Remove one operation randomly
+      const removeIndex = seed % adjusted.length;
+      adjusted.splice(removeIndex, 1);
+    }
+
+    return adjusted;
+  };
+
   // Helper to get data for specific station from line data
   const currentData = useMemo(() => {
     if (!selectedStation || !line) return null;
 
-    return {
-      videos: selectedStation.videos?.map(v => ({
-        id: v.id,
-        name: v.name,
-        date: v.uploadDate || '2023-12-01',
-        duration: v.duration || '00:00'
-      })) || [],
-      analysis: selectedStation.mostData?.operations?.map((op, i) => ({
+    const videos = selectedStation.videos?.map(v => ({
+      id: v.id,
+      name: v.name,
+      date: v.uploadDate || '2023-12-01',
+      duration: v.duration || '00:00'
+    })) || [];
+
+    // Set first video as selected by default if not already set
+    if (videos.length > 0 && !selectedVideoId) {
+      setSelectedVideoId(videos[0].id);
+    }
+
+    // Get base operations from station
+    const baseOperations = selectedStation.mostData?.operations || [];
+
+    // Get analysis data for the selected video
+    const selectedVideo = selectedStation.videos?.find(v => v.id === selectedVideoId);
+
+    // Generate unique results for this video
+    let analysis = [];
+    if (selectedVideo?.mostData?.operations) {
+      // If video has its own mostData, use it
+      analysis = selectedVideo.mostData.operations.map((op, i) => ({
         id: op.method || `OP-${i}`,
         d: op.step || op.description || 'Operation',
         t: op.tmu || 0
-      })) || []
+      }));
+    } else if (baseOperations.length > 0) {
+      // Otherwise, generate shuffled results from base operations
+      const shuffledOps = generateVideoResults(baseOperations, selectedVideoId || 1, selectedVideo?.name || '');
+      analysis = shuffledOps.map((op, i) => ({
+        id: op.method || `OP-${i}`,
+        d: op.step || op.description || 'Operation',
+        t: op.tmu || 0
+      }));
+    }
+
+    return {
+      videos,
+      analysis,
+      selectedVideo: selectedVideo || videos[0]
     };
-  }, [selectedStation, line]);
+  }, [selectedStation, line, selectedVideoId]);
 
   if (!line) {
     return (
-      <div className="min-h-screen bg-[#0a0a12] flex items-center justify-center">
-        <div className="text-white text-xl">Line not found</div>
+      <div className="min-h-screen bg-[#f5f7fa] flex items-center justify-center">
+        <div className="text-slate-800 text-xl font-bold">Line not found</div>
       </div>
     );
   }
 
   return (
-    <div className="pt-24 px-4 md:px-10 pb-32 max-w-[1400px] mx-auto min-h-screen bg-[#0a0a12] text-slate-300">
+    <div className="pt-24 px-4 md:px-10 pb-32 max-w-[1400px] mx-auto min-h-screen bg-[#f5f7fa] text-slate-800">
       <div className="flex items-center gap-6 mb-12">
-        <button onClick={() => navigate('/home')} className="p-3 bg-white/5 border border-white/10 text-white rounded-2xl hover:bg-white/10 transition-all">
+        <button onClick={() => navigate('/home')} className="p-3 bg-white border-2 border-slate-300 text-slate-800 rounded-xl hover:bg-slate-100 hover:border-tata-lightblue transition-all shadow-md">
           <ArrowLeft size={20} />
         </button>
         <div>
-          <h2 className="text-4xl font-black text-white tracking-tighter uppercase">{line.name}</h2>
-          <p className="text-[10px] font-bold text-purple-400 uppercase tracking-[0.2em] mt-1">Live Manufacturing Sequence</p>
+          <h2 className="text-4xl font-black text-slate-900 tracking-tight uppercase">{line.name}</h2>
+          <p className="text-[10px] font-bold text-tata-blue uppercase tracking-[0.2em] mt-1">Live Manufacturing Sequence</p>
         </div>
       </div>
 
@@ -108,17 +174,17 @@ const LineDetails = () => {
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.02 }}
-            className="w-full py-24 bg-[#151525]/20 border-2 border-dashed border-white/5 rounded-[3rem] flex flex-col items-center justify-center backdrop-blur-sm"
+            className="w-full py-24 bg-white border-2 border-dashed border-slate-300 rounded-3xl flex flex-col items-center justify-center shadow-sm"
           >
             <motion.div
               animate={{ y: [0, -10, 0] }}
               transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-              className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/10 text-purple-500/40"
+              className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-6 border-2 border-slate-300 text-tata-blue"
             >
               <LockKeyhole size={30} />
             </motion.div>
-            <h3 className="text-xl font-black text-white uppercase tracking-widest">Awaiting Node Selection</h3>
-            <p className="text-purple-400/40 text-xs mt-2">Select a station from the snake diagram to authorize telemetry</p>
+            <h3 className="text-xl font-black text-slate-900 uppercase tracking-wide">Awaiting Node Selection</h3>
+            <p className="text-slate-600 text-xs mt-2 font-medium">Select a station from the snake diagram to authorize telemetry</p>
           </motion.div>
         ) : (
           <motion.div
@@ -128,7 +194,7 @@ const LineDetails = () => {
             className="grid grid-cols-1 lg:grid-cols-2 gap-8"
           >
             {/* LEFT SIDE: Video Feed & Upload */}
-            <div className="bg-[#151525]/60 border border-white/10 rounded-[3rem] overflow-hidden backdrop-blur-md">
+            <div className="bg-white border-2 border-slate-300 rounded-3xl overflow-hidden shadow-lg">
               {/* Hidden file input */}
               <input
                 type="file"
@@ -138,14 +204,15 @@ const LineDetails = () => {
                 className="hidden"
               />
 
-              <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/5">
-                <h4 className="font-black text-white flex items-center gap-3 uppercase text-sm">
-                  <Video size={18} className="text-purple-500" />
-                  Live Station Feed
+              <div className="p-8 border-b-2 border-slate-200 flex justify-between items-center bg-slate-50">
+                <h4 className="font-black text-slate-900 flex items-center gap-3 uppercase text-sm">
+                  <Video size={18} className="text-tata-blue" />
+                  Station Video Feed
                 </h4>
-                <div className="px-4 py-1.5 bg-green-500/10 text-green-500 text-[10px] font-black rounded-full border border-green-500/20">
-                  CONNECTED
-                </div>
+                <button onClick={handleUploadClick} className="px-4 py-2 bg-tata-blue text-white font-bold rounded-lg flex items-center gap-2 hover:bg-tata-darkblue transition-all active:scale-95 text-xs">
+                  <Upload size={16} />
+                  <span>Upload</span>
+                </button>
               </div>
 
               <div className="p-8">
@@ -153,31 +220,57 @@ const LineDetails = () => {
                 {currentData?.videos.length > 0 ? (
                   <>
                     {/* Video Player */}
-                    <div className="aspect-video bg-black rounded-[2rem] flex items-center justify-center mb-6 relative group border border-white/5 overflow-hidden">
-                      <div className="absolute top-4 left-4 z-20 px-3 py-1 bg-black/60 text-[10px] font-bold text-white rounded-lg border border-white/10">
+                    <div className="aspect-video bg-slate-900 rounded-2xl flex items-center justify-center mb-6 relative group border-2 border-slate-300 overflow-hidden shadow-md">
+                      <div className="absolute top-4 left-4 z-20 px-3 py-1 bg-slate-800/90 text-[10px] font-bold text-white rounded-lg border border-slate-600">
                         STATION_{selectedStation.number}_CAM_01
                       </div>
-                      <PlayCircle className="text-purple-500 opacity-40 group-hover:opacity-100 group-hover:scale-110 transition-all cursor-pointer" size={60} />
+                      {currentData.selectedVideo && (
+                        <div className="absolute top-4 right-4 z-20 px-3 py-1 bg-tata-blue/90 text-[10px] font-bold text-white rounded-lg">
+                          {currentData.selectedVideo.name}
+                        </div>
+                      )}
+                      <PlayCircle className="text-tata-lightblue opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all cursor-pointer" size={60} />
                     </div>
 
-                    {/* Upload Button */}
-                    <button onClick={handleUploadClick} className="w-full mb-6 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black rounded-2xl flex items-center justify-center gap-3 hover:shadow-[0_0_30px_rgba(147,51,234,0.4)] transition-all active:scale-95">
-                      <Upload size={20} />
-                      <span className="uppercase tracking-widest text-xs">Upload New Video</span>
-                    </button>
-
-                    {/* Video List */}
+                    {/* Video List with Review Buttons */}
                     <div className="space-y-3">
-                      <h5 className="text-[10px] font-black text-purple-400/60 uppercase tracking-widest mb-3">Uploaded Videos</h5>
+                      <h5 className="text-[10px] font-black text-slate-600 uppercase tracking-wide mb-3">Uploaded Videos</h5>
                       {currentData.videos.map(v => (
-                        <div key={v.id} className="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5 hover:bg-white/10 transition-all cursor-pointer">
+                        <div
+                          key={v.id}
+                          className={`p-4 rounded-xl flex justify-between items-center border-2 transition-all ${selectedVideoId === v.id
+                            ? 'bg-tata-blue/10 border-tata-blue'
+                            : 'bg-slate-50 border-slate-200 hover:bg-slate-100 hover:border-tata-lightblue'
+                            }`}
+                        >
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                              <PlayCircle size={16} className="text-purple-400" />
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedVideoId === v.id ? 'bg-tata-blue text-white' : 'bg-tata-blue/10 text-tata-blue'
+                              }`}>
+                              <PlayCircle size={16} />
                             </div>
-                            <span className="text-xs font-bold text-white">{v.name}</span>
+                            <div>
+                              <span className="text-xs font-bold text-slate-900 block">{v.name}</span>
+                              <span className="text-[10px] text-slate-600">{v.duration}</span>
+                            </div>
                           </div>
-                          <span className="text-[10px] text-purple-400 font-bold">{v.duration}</span>
+                          <button
+                            onClick={() => {
+                              if (selectedVideoId !== v.id) {
+                                setIsProcessing(true);
+                                setTimeout(() => {
+                                  setSelectedVideoId(v.id);
+                                  setTimeout(() => setIsProcessing(false), 400);
+                                }, 300);
+                              }
+                            }}
+                            disabled={isProcessing}
+                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${selectedVideoId === v.id
+                              ? 'bg-tata-blue text-white'
+                              : 'bg-slate-200 text-slate-700 hover:bg-tata-blue hover:text-white disabled:opacity-50'
+                              }`}
+                          >
+                            {selectedVideoId === v.id ? 'Reviewing' : 'Review'}
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -206,13 +299,31 @@ const LineDetails = () => {
             </div>
 
             {/* RIGHT SIDE: MOST Analysis Results */}
-            <div className="bg-[#151525]/60 border border-white/10 rounded-[3rem] overflow-hidden backdrop-blur-md">
-              <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/5">
-                <h4 className="font-black text-white flex items-center gap-3 uppercase text-sm">
-                  <Workflow size={18} className="text-purple-500" />
+            <div className="bg-white border-2 border-slate-300 rounded-3xl overflow-hidden shadow-lg relative">
+              {/* Processing Overlay */}
+              {isProcessing && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center"
+                >
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    className="w-12 h-12 border-4 border-tata-blue/20 border-t-tata-blue rounded-full mb-4"
+                  />
+                  <p className="text-sm font-bold text-tata-blue uppercase tracking-wide">Processing Analysis...</p>
+                  <p className="text-xs text-slate-600 mt-2">Generating MOST results</p>
+                </motion.div>
+              )}
+
+              <div className="p-8 border-b-2 border-slate-200 flex justify-between items-center bg-slate-50">
+                <h4 className="font-black text-slate-900 flex items-center gap-3 uppercase text-sm">
+                  <Workflow size={18} className="text-tata-blue" />
                   MOST Cycle Results
                 </h4>
-                <button onClick={handleDownload} className="p-2.5 bg-white/5 text-purple-400 rounded-xl hover:text-white transition-all">
+                <button onClick={handleDownload} className="p-2.5 bg-slate-100 text-tata-blue border-2 border-slate-300 rounded-xl hover:bg-tata-blue hover:text-white transition-all">
                   <Download size={16} />
                 </button>
               </div>
@@ -220,44 +331,62 @@ const LineDetails = () => {
               {/* Conditional rendering based on video availability */}
               {currentData?.videos.length > 0 ? (
                 <>
-                  <div className="overflow-x-auto">
+                  <motion.div
+                    key={selectedVideoId}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                    className="overflow-x-auto"
+                  >
                     <table className="w-full text-left">
                       <thead>
-                        <tr className="bg-white/5 border-b border-white/5 text-[10px] text-purple-400/60 font-black uppercase tracking-widest">
+                        <tr className="bg-slate-50 border-b-2 border-slate-200 text-[10px] text-slate-700 font-black uppercase tracking-wide">
                           <th className="px-8 py-4">Sequence ID</th>
                           <th className="px-8 py-4">Description</th>
                           <th className="px-8 py-4 text-right">TMU</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-white/5">
+                      <tbody className="divide-y divide-slate-200">
                         {currentData?.analysis.length > 0 ? currentData.analysis.map((row, i) => (
-                          <tr key={i} className="hover:bg-white/5 transition-colors">
-                            <td className="px-8 py-5 font-mono text-xs text-purple-400 font-bold">{row.id}</td>
-                            <td className="px-8 py-5 text-[11px] text-white/60 font-bold">{row.d}</td>
-                            <td className="px-8 py-5 text-right font-black text-white">{row.t}</td>
-                          </tr>
+                          <motion.tr
+                            key={i}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.05 }}
+                            className="hover:bg-slate-50 transition-colors"
+                          >
+                            <td className="px-8 py-5 font-mono text-xs text-tata-blue font-bold">{row.id}</td>
+                            <td className="px-8 py-5 text-[11px] text-slate-700 font-semibold">{row.d}</td>
+                            <td className="px-8 py-5 text-right font-black text-slate-900">{row.t}</td>
+                          </motion.tr>
                         )) : (
                           <tr>
-                            <td colSpan="3" className="text-center text-xs text-white/40 py-8">
+                            <td colSpan="3" className="text-center text-xs text-slate-500 py-8 font-medium">
                               No analysis data available
                             </td>
                           </tr>
                         )}
                       </tbody>
                     </table>
-                  </div>
+                  </motion.div>
 
-                  <div className="p-8 mt-auto border-t border-white/5 bg-black/20 flex justify-between items-center">
+                  <div className="p-8 mt-auto border-t-2 border-slate-200 bg-slate-50 flex justify-between items-center">
                     <div>
-                      <p className="text-[9px] font-black text-purple-400/40 uppercase tracking-widest">Station Cycle Total</p>
-                      <p className="text-3xl font-black text-white">
+                      <p className="text-[9px] font-black text-slate-600 uppercase tracking-wide">Station Cycle Total</p>
+                      <motion.p
+                        key={`total-${selectedVideoId}`}
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ type: "spring", stiffness: 200 }}
+                        className="text-3xl font-black text-slate-900"
+                      >
                         {currentData?.analysis.reduce((acc, curr) => acc + curr.t, 0) || 0}
-                        <span className="text-xs text-purple-500 ml-1">TMU</span>
-                      </p>
+                        <span className="text-xs text-tata-blue ml-1 font-bold">TMU</span>
+                      </motion.p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[9px] font-black text-purple-400/40 uppercase tracking-widest">Performance</p>
-                      <p className="text-3xl font-black text-green-400">92%</p>
+                      <p className="text-[9px] font-black text-slate-600 uppercase tracking-wide">Performance</p>
+                      <p className="text-3xl font-black text-green-600">92%</p>
                     </div>
                   </div>
                 </>

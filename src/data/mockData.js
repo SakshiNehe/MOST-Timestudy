@@ -13,9 +13,57 @@ export const mockLines = [
         number: "S1",
         name: "Frame Assembly",
         videos: [
-          { id: 1, name: "frame_assembly_op1.mp4", uploadDate: "2025-12-15", duration: "2:45" },
-          { id: 2, name: "frame_assembly_op2.mp4", uploadDate: "2025-12-16", duration: "3:12" },
-          { id: 3, name: "frame_assembly_op3.mp4", uploadDate: "2025-12-17", duration: "2:58" }
+          {
+            id: 1,
+            name: "frame_assembly_op1.mp4",
+            uploadDate: "2025-12-15",
+            duration: "2:45",
+            mostData: {
+              tmu: 1250,
+              cycleTime: "45.0s",
+              parameters: { A: 320, B: 280, G: 350, P: 300 },
+              operations: [
+                { step: "Get frame component", tmu: 280, method: "A6B0G1" },
+                { step: "Position on fixture", tmu: 350, method: "A4B3G3P2" },
+                { step: "Secure with bolts", tmu: 420, method: "A2B6G2P5" },
+                { step: "Verify alignment", tmu: 200, method: "A3B0G1" }
+              ]
+            }
+          },
+          {
+            id: 2,
+            name: "frame_assembly_op2.mp4",
+            uploadDate: "2025-12-16",
+            duration: "3:12",
+            mostData: {
+              tmu: 1180,
+              cycleTime: "42.5s",
+              parameters: { A: 310, B: 270, G: 330, P: 270 },
+              operations: [
+                { step: "Retrieve frame parts", tmu: 260, method: "A5B0G1" },
+                { step: "Align on jig", tmu: 330, method: "A4B3G2P2" },
+                { step: "Fasten bolts", tmu: 390, method: "A2B5G2P4" },
+                { step: "Check alignment", tmu: 200, method: "A3B0G1" }
+              ]
+            }
+          },
+          {
+            id: 3,
+            name: "frame_assembly_op3.mp4",
+            uploadDate: "2025-12-17",
+            duration: "2:58",
+            mostData: {
+              tmu: 1320,
+              cycleTime: "47.5s",
+              parameters: { A: 330, B: 290, G: 370, P: 330 },
+              operations: [
+                { step: "Pick frame assembly", tmu: 300, method: "A7B0G1" },
+                { step: "Place in fixture", tmu: 370, method: "A5B4G3P3" },
+                { step: "Tighten fasteners", tmu: 450, method: "A3B7G3P6" },
+                { step: "Inspect quality", tmu: 200, method: "A3B0G1" }
+              ]
+            }
+          }
         ],
         mostData: {
           tmu: 1250,
